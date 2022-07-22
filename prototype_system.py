@@ -8,6 +8,7 @@ Created on Tue Jul 19 2022
 
 import numpy as np
 from sklearn.linear_model import LinearRegression
+#from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
 
 
@@ -18,13 +19,19 @@ class Env:
     def __init__(self, sample_size):
         self.sample_size = sample_size
         self.rng = np.random.default_rng() # add random seed here if wanted
+        self.counter = 0
     
     # generate environmental sample
     def sample(self):
+        if self.counter < 15:
+            k = -5
+        else:
+            k = 5
         X = self.rng.random(self.sample_size) # X ~ Unif[0,1)
-        p = 1 / (1 + np.exp(-10 * (X - 0.5))) # p(x is 1) follows logistic
+        p = 1 / (1 + np.exp(-k * (X - 0.5))) # p(x is 1) follows logistic
         Y = self.rng.random(self.sample_size) < p # generate labels from probs
         Y = Y.astype(int) # cast bool labels to integer type
+        self.counter = self.counter + 1
         return (X, Y)
 
 
@@ -38,6 +45,11 @@ class Learner:
         self.m_e = LinearRegression()
         self.m_i = LinearRegression()
         self.m_c = LinearRegression()
+        
+        # self.m_e = LogisticRegression()
+        # self.m_i = LogisticRegression()
+        # self.m_c = LogisticRegression()
+        
         # initialize models with random data
         self.m_e.fit(self.env.rng.random(self.env.sample_size).reshape(-1, 1),
                       self.env.rng.choice(2, self.env.sample_size))
@@ -57,9 +69,20 @@ class Learner:
             (X_w, Y_w) = self.env.sample()
             #print(self.evaluate(X_w, Y_w)) # print current score
             
-            m_e_scores.append(self.m_e.score(X_w.reshape(-1, 1), Y_w))
-            m_i_scores.append(self.m_i.score(X_w.reshape(-1, 1), Y_w))
-            m_c_scores.append(self.m_c.score(X_w.reshape(-1, 1), Y_w))
+            m_e_score = sum((self.m_e.predict(X_w.reshape(-1, 1)) > 0.5) ==
+                            Y_w.astype(bool)) / self.env.sample_size
+            m_i_score = sum((self.m_i.predict(X_w.reshape(-1, 1)) > 0.5) ==
+                            Y_w.astype(bool)) / self.env.sample_size
+            m_c_score = sum((self.m_c.predict(X_w.reshape(-1, 1)) > 0.5) ==
+                            Y_w.astype(bool)) / self.env.sample_size
+            
+            m_e_scores.append(m_e_score)
+            m_i_scores.append(m_i_score)
+            m_c_scores.append(m_c_score)
+            
+            # m_e_scores.append(self.m_e.score(X_w.reshape(-1, 1), Y_w))
+            # m_i_scores.append(self.m_i.score(X_w.reshape(-1, 1), Y_w))
+            # m_c_scores.append(self.m_c.score(X_w.reshape(-1, 1), Y_w))
             
             self.update(X_w, Y_w, params)
             
@@ -115,18 +138,22 @@ class Learner:
 
 
 plt.figure()
+plt.title('ImaginAgent performance over batches across gammas')
 plt.xlabel('batch')
-plt.ylabel('R ^ 2')
-plt.ylim(-1,1)
+plt.ylabel('Accuracy')
+plt.ylim(0,1)
 
 for gam in np.arange(0, 1, 0.25):
-    params = {'n_runs': 30, 'phi': 0, 'gam': gam}
+    params = {'n_runs': 30, 'phi': 0, 'gam': gam} #
     
-    e = Env(sample_size=10)
-    l = Learner(e)
-    results = l.run(params)
+    n_batches = 100
+    results = np.full([n_batches, params['n_runs']], np.nan)
+    for batch in range(n_batches):
+        e = Env(sample_size=100)
+        l = Learner(e)
+        results[batch] = l.run(params)[2]
     
     
     #plt.plot(results[0], label='M_e')
-    plt.plot(results[2], label=('gam = ' + str(gam)))
-    plt.legend()
+    plt.plot(np.mean(results, axis=0), label=('gam = ' + str(gam)))
+    plt.legend(title=f'Avg over {n_batches} runs')
