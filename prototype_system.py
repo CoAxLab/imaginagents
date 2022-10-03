@@ -99,7 +99,10 @@ class Learner:
         loss_e = np.sum( (Y_w - Y_hat_e) ** 2)
         Y_hat_i = self.m_i.predict(X_w.reshape(-1, 1))
         loss_i = np.sum( (Y_w - Y_hat_i) ** 2)
-        phi = loss_e / (loss_e + loss_i) # relative loss proportion
+        if (loss_e + loss_i) == 0: # prevent divide by zero error
+            phi = 0.5
+        else:
+            phi = loss_e / (loss_e + loss_i) # relative loss proportion
         
         #print("phi = " + str(phi))
         #print(self.m_e.score(X_w.reshape(-1, 1), Y_w))
@@ -143,13 +146,13 @@ plt.xlabel('batch')
 plt.ylabel('Accuracy')
 plt.ylim(0,1)
 
-for gam in np.arange(0, 1, 0.25):
+for gam in [0.00, 0.10, 0.50, 0.75, 0.85, 0.90]: #np.arange(0, 1, 0.25):
     params = {'n_runs': 30, 'phi': 0, 'gam': gam} #
     
-    n_batches = 100
+    n_batches = 1000
     results = np.full([n_batches, params['n_runs']], np.nan)
     for batch in range(n_batches):
-        e = Env(sample_size=100)
+        e = Env(sample_size=3)
         l = Learner(e)
         results[batch] = l.run(params)[2]
     
