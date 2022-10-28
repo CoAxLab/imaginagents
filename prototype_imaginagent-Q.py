@@ -17,13 +17,17 @@ class Env:
     def __init__(self, Q_env):
         self.Q_env = Q_env
         self.n_actions = len(Q_env)
+        self.counter = 0
+        self.changepoint = 50
     
     # generate environmental sample
     def sample(self, action):
+        if self.counter == self.changepoint: self.Q_env.reverse()
+        self.counter += 1
         return self.Q_env[action]
 
 
-# TODO: code agent
+# # Agent pseudocode
 # // Initialize variables\;
 #  $Q_0' \gets [0, 0, ..., 0]$\;
 #  $Q_0^E \gets [0, 0, ..., 0]$\;
@@ -62,13 +66,15 @@ class Learner:
     
     def run(self, n_trials):
         rewards = []
+        phis = []
         for trial in range(n_trials):
-            reward = self.perform_trial()
+            (reward, phi) = self.perform_trial()
             rewards.append(reward)
-        print(self.Q_exp)
-        print(self.Q_img)
-        print(self.Q_mix)
-        return rewards
+            phis.append(phi)
+        # print(self.Q_exp)
+        # print(self.Q_img)
+        # print(self.Q_mix)
+        return (rewards, phis)
     
     def perform_trial(self):
         # parameters
@@ -123,19 +129,81 @@ class Learner:
         self.Q_mix = (1 - phi) * Q_exp + (phi) * Q_img
         
         # return reward for this trial
-        return reward
+        return (reward, phi)
 
 
-# TODO: run simulations
-e = Env([1,0,0,0])
-params = {'t_mix': 0.0, 't_img': 1.0, 'alpha': 0.1, 'phi': 0.0}
+
+
+# params = {'t_mix': 3.0, 't_img': 3.0, 'alpha': 0.1, 'phi': 0.0}
+# rewards_record = []
+# for batch in range(1000):
+#     e = Env([1,0,0,0])
+#     agent = Learner(e, params)
+#     rewards = agent.run(100)
+#     rewards_record.append(rewards)
+# plt.plot(np.array(rewards_record).mean(axis=0))
+
+
+fig, axs = plt.subplots(3, sharex=True, figsize=(8,10))
+
+axs[0].plot(np.concatenate([np.full(50,1),np.full(50,0)]), c='C6', lw=4, alpha=0.6, label='A')
+axs[0].plot(np.full(100,0),                                c='C5', lw=4, alpha=0.6, label='B')
+axs[0].plot(np.full(100,0),                                c='C8', lw=4, alpha=0.6, label='C')
+axs[0].plot(np.concatenate([np.full(50,0),np.full(50,1)]), c='C9', lw=4, alpha=0.6, label='D')
+axs[0].set_title('4-armed bandit task structure')
+axs[0].set_ylabel('P(reward)')
+axs[0].legend(title='arm', loc='upper left')
+
+for phi in [0.0, 0.25, 0.5, 0.75, 1.0]:
+    params = {'t_mix': 3.0, 't_img': 3.0, 'alpha': 0.1, 'phi': phi}
+    rewards_record = []
+    phis_record = []
+    for batch in range(1000):
+        e = Env([1,0,0,0])
+        agent = Learner(e, params)
+        (rewards, phis) = agent.run(100)
+        rewards_record.append(rewards)
+        phis_record.append(phis)
+    means = np.array(rewards_record).mean(axis=0)
+    stds = np.array(rewards_record).std(axis=0)
+    axs[1].plot(means, label=str(phi))
+    axs[1].fill_between(np.arange(100), means+stds, means-stds, alpha=0.2)
+
+params = {'t_mix': 3.0, 't_img': 3.0, 'alpha': 0.1}
 rewards_record = []
-for batch in range(100):
+phis_record = []
+for batch in range(1000):
+    e = Env([1,0,0,0])
     agent = Learner(e, params)
-    rewards = agent.run(100)
+    (rewards, phis) = agent.run(100)
     rewards_record.append(rewards)
-plt.plot(np.array(rewards_record).mean(axis=0))
+    phis_record.append(phis)
+means = np.array(rewards_record).mean(axis=0)
+stds = np.array(rewards_record).std(axis=0)
+axs[1].plot(means, label='auto', c='k', linestyle='dashed')
+axs[1].fill_between(np.arange(100), means+stds, means-stds, color='k', alpha=0.1)
+
+#fig.suptitle('Avg. reward over 1,000 runs +- std')
+axs[1].set_title('Avg. reward over 1,000 runs +- std')
+axs[1].set_ylabel('reward')
+axs[1].legend(title='phi setting', loc='upper left')
+
+means = np.array(phis_record).mean(axis=0)
+stds = np.array(phis_record).std(axis=0)
+axs[2].plot(means, label='phi', c='k')
+axs[2].fill_between(np.arange(100), means+stds, means-stds, color='k', alpha=0.1)
+axs[2].set_title('Avg. adaptive phi setting over 1,000 runs +- std')
+axs[2].set_ylabel('phi')
+axs[2].set_xlabel('step')
+axs[2].legend(loc='upper left')
+ 
+plt.show()
 
 
-# TODO: plot results
+# fig, axs = plt.subplots(3)
+# for phi in [0.0, 0.25, 0.5, 0.75, 1.0]:
+
+#     #fig.suptitle('Vertically stacked subplots')
+#     axs[0].plot(x, y)
+#     axs[1].plot(x, -y)
 
