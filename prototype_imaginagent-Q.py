@@ -9,48 +9,59 @@ Created on Thu Sep 29 16:59:18 2022
 import numpy as np
 import matplotlib.pyplot as plt
 
-# TODO: code environment
+from bandit import DeceptiveBanditOneHigh10
+from bandit import BanditHardAndSparse2
+from bandit import BanditHardAndSparse10
+from bandit import BanditHardAndSparse121
+from bandit import BanditHardAndSparse1000
+
+
 # Environment class
 class Env:
     
     # initialization method
     def __init__(self, Q_env):
         self.Q_env = Q_env
-        self.n_actions = len(Q_env)
+        #self.n_actions = len(Q_env)
+        
+        ActionSpace = type('MyObject', (object,), {})
+        self.action_space = ActionSpace()
+        self.action_space.n = len(Q_env)
+        
         self.counter = 0
         self.changepoint = 50
     
     # generate environmental sample
-    def sample(self, action):
+    def step(self, action):
         if self.counter == self.changepoint: self.Q_env.reverse()
         self.counter += 1
-        return self.Q_env[action]
+        observation = None
+        reward = self.Q_env[action]
+        done = None
+        info = None
+        return (observation, reward, done, info)
 
-
-# # Agent pseudocode
-# // Initialize variables\;
-#  $Q_0' \gets [0, 0, ..., 0]$\;
-#  $Q_0^E \gets [0, 0, ..., 0]$\;
-#  $Q_0^I \gets [0, 0, ..., 0]$\;
-#  $t=0$\;
-#  \While{termination condition not met}{
-#   $T_t^E \gets$ singleSample($Q_t^R$)\; %, learning=frozen)\;
-#   %policy=Boltzman($Q'$), $\alpha$=0)\;
-#   $L_t'$ (performance) $\gets$ $L(\pi(Q_t',\tau'), T_t^E)$\; %reward($T_t^E$)\;
-  
-#   $L_t^E$ $\gets$ $L(\pi(Q_t^E, \tau^E), T_t^E)$\;
-#   $L_t^I$ $\gets$ $L(\pi(Q_t^I, \tau^I), T_t^E)$\;
-  
-#   $\phi_t \gets L_t^I/(L_t^I + L_t^E)$\;
-  
-#   $Q_{t+1}^E \gets $ update($Q_t^E$ with $T_t^E, \pi, \tau^E, \alpha)$\;
-#   $T_t^I \gets$ singleSample($Q_{t+1}^E$)\;%, learning=?)\;
-#   $Q_{t+1}^I \gets $ update($Q_t^I$ with $T_t^I, \pi, \tau^I, \alpha)$\;
-  
-#   $Q_{t+1}' \gets \phi_t Q_{t+1}^E + (1-\phi_t) Q_{t+1}^I$\;
-  
-#   $t \gets t + 1$\;
-
+class RandomWalkEnv:
+    
+    # initialization method
+    def __init__(self, Q_envs):
+        self.Q_envs = Q_envs
+        #self.n_actions = len(Q_env)
+        
+        ActionSpace = type('MyObject', (object,), {})
+        self.action_space = ActionSpace()
+        self.action_space.n = len(Q_envs[0])
+        
+        self.counter = 0
+    
+    # generate environmental sample
+    def step(self, action):
+        observation = None
+        reward = self.Q_envs[self.counter][action]
+        done = None
+        info = None
+        self.counter += 1
+        return (observation, reward, done, info)
 
 # Learner class
 class Learner:
@@ -58,7 +69,7 @@ class Learner:
     # initialization method
     def __init__(self, env, params):
         self.env = env
-        self.n_actions = env.n_actions
+        self.n_actions = env.action_space.n #env.n_actions
         self.params = params
         self.Q_exp = np.zeros(self.n_actions)
         self.Q_img = np.zeros(self.n_actions)
@@ -96,7 +107,7 @@ class Learner:
         action = np.random.choice(self.n_actions, p=act_probs) # choose action
         
         # evaluate performance
-        reward = self.env.sample(action)
+        (_, reward, _, _) = self.env.step(action)
         
         # calculate loss wrt Q_exp
         loss_exp = abs(reward - Q_exp[action])
@@ -144,12 +155,26 @@ class Learner:
 # plt.plot(np.array(rewards_record).mean(axis=0))
 
 
+# generate random walk reward schedules
+Qs = [np.random.rand(4)]
+#start = np.random.rand(4)
+for i in range(99):
+    Qs.append(Qs[-1] + np.random.normal(0, 0.1, 4))
+
+
 fig, axs = plt.subplots(3, sharex=True, figsize=(8,10))
 
-axs[0].plot(np.concatenate([np.full(50,1),np.full(50,0)]), c='C6', lw=4, alpha=0.6, label='A')
-axs[0].plot(np.full(100,0),                                c='C5', lw=4, alpha=0.6, label='B')
-axs[0].plot(np.full(100,0),                                c='C8', lw=4, alpha=0.6, label='C')
-axs[0].plot(np.concatenate([np.full(50,0),np.full(50,1)]), c='C9', lw=4, alpha=0.6, label='D')
+axs[0].plot(np.array(Qs)[:,0], c='C6', lw=4, alpha=0.6, label='A')
+axs[0].plot(np.array(Qs)[:,1], c='C5', lw=4, alpha=0.6, label='B')
+axs[0].plot(np.array(Qs)[:,2], c='C8', lw=4, alpha=0.6, label='C')
+axs[0].plot(np.array(Qs)[:,3], c='C9', lw=4, alpha=0.6, label='D')
+
+
+# axs[0].plot(np.concatenate([np.full(50,1),np.full(50,0)]), c='C6', lw=4, alpha=0.6, label='A')
+# axs[0].plot(np.full(100,0),                                c='C5', lw=4, alpha=0.6, label='B')
+# axs[0].plot(np.full(100,0),                                c='C8', lw=4, alpha=0.6, label='C')
+# axs[0].plot(np.concatenate([np.full(50,0),np.full(50,1)]), c='C9', lw=4, alpha=0.6, label='D')
+
 axs[0].set_title('4-armed bandit task structure')
 axs[0].set_ylabel('P(reward)')
 axs[0].legend(title='arm', loc='upper left')
@@ -159,7 +184,7 @@ for phi in [0.0, 0.25, 0.5, 0.75, 1.0]:
     rewards_record = []
     phis_record = []
     for batch in range(1000):
-        e = Env([1,0,0,0])
+        e = RandomWalkEnv(Qs) #BanditHardAndSparse2() #DeceptiveBanditOneHigh10() #Env([1,0,0,0])
         agent = Learner(e, params)
         (rewards, phis) = agent.run(100)
         rewards_record.append(rewards)
@@ -173,7 +198,7 @@ params = {'t_mix': 3.0, 't_img': 3.0, 'alpha': 0.1}
 rewards_record = []
 phis_record = []
 for batch in range(1000):
-    e = Env([1,0,0,0])
+    e = RandomWalkEnv(Qs) #BanditHardAndSparse2() #DeceptiveBanditOneHigh10() #Env([1,0,0,0])
     agent = Learner(e, params)
     (rewards, phis) = agent.run(100)
     rewards_record.append(rewards)
@@ -193,8 +218,9 @@ stds = np.array(phis_record).std(axis=0)
 axs[2].plot(means, label='phi', c='k')
 axs[2].fill_between(np.arange(100), means+stds, means-stds, color='k', alpha=0.1)
 axs[2].set_title('Avg. adaptive phi setting over 1,000 runs +- std')
+axs[2].set_ylim(0,1)
 axs[2].set_ylabel('phi')
-axs[2].set_xlabel('step')
+axs[2].set_xlabel('trial')
 axs[2].legend(loc='upper left')
  
 plt.show()
