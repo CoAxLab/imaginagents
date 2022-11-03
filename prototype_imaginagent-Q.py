@@ -74,6 +74,7 @@ class Learner:
         self.Q_exp = np.zeros(self.n_actions)
         self.Q_img = np.zeros(self.n_actions)
         self.Q_mix = np.zeros(self.n_actions)
+        self.env_steps_taken = 0
     
     def run(self, n_trials):
         rewards = []
@@ -108,6 +109,7 @@ class Learner:
         
         # evaluate performance
         (_, reward, _, _) = self.env.step(action)
+        self.env_steps_taken += 1
         
         # calculate loss wrt Q_exp
         loss_exp = abs(reward - Q_exp[action])
@@ -122,6 +124,8 @@ class Learner:
             phi = 0.5
         else:
             phi = loss_exp / (loss_exp + loss_img) # relative loss proportion
+        
+        if self.env_steps_taken == 1: phi = 0 # phi is 0 for the 1st time step
         
         # update Q_exp using exp sample
         self.Q_exp[action] += alpha * (reward - Q_exp[action])
@@ -156,10 +160,18 @@ class Learner:
 
 
 # generate random walk reward schedules
-Qs = [np.random.rand(4)]
+A_init = np.random.rand()
+Qs = [np.array([A_init, 0.2, 0.3, 1 - A_init])]
 #start = np.random.rand(4)
 for i in range(99):
-    Qs.append(Qs[-1] + np.random.normal(0, 0.1, 4))
+    drift = np.random.normal(0, 0.1) #, 4)
+    Qs.append(Qs[-1] + [drift, 0, 0, -1 * drift])
+    if Qs[-1][0] > 1:
+        Qs[-1][0] = 1
+        Qs[-1][3] = 0
+    if Qs[-1][0] < 0:
+        Qs[-1][0] = 0
+        Qs[-1][3] = 1
 
 
 fig, axs = plt.subplots(3, sharex=True, figsize=(8,10))
