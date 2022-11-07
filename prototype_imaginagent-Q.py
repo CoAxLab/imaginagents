@@ -149,29 +149,250 @@ class Learner:
 
 
 
-# params = {'t_mix': 3.0, 't_img': 3.0, 'alpha': 0.1, 'phi': 0.0}
+# # params = {'t_mix': 3.0, 't_img': 3.0, 'alpha': 0.1, 'phi': 0.0}
+# # rewards_record = []
+# # for batch in range(1000):
+# #     e = Env([1,0,0,0])
+# #     agent = Learner(e, params)
+# #     rewards = agent.run(100)
+# #     rewards_record.append(rewards)
+# # plt.plot(np.array(rewards_record).mean(axis=0))
+
+
+# # generate random walk reward schedules
+# A_init = np.random.rand()
+# Qs = [np.array([A_init, 0.2, 0.3, 1 - A_init])]
+# #start = np.random.rand(4)
+# for i in range(99):
+#     drift = np.random.normal(0, 0.1) #, 4)
+#     Qs.append(Qs[-1] + [drift, 0, 0, -1 * drift])
+#     if Qs[-1][0] > 1:
+#         Qs[-1][0] = 1
+#         Qs[-1][3] = 0
+#     if Qs[-1][0] < 0:
+#         Qs[-1][0] = 0
+#         Qs[-1][3] = 1
+
+
+# fig, axs = plt.subplots(3, sharex=True, figsize=(8,10))
+
+# axs[0].plot(np.array(Qs)[:,0], c='C6', lw=4, alpha=0.6, label='A')
+# axs[0].plot(np.array(Qs)[:,1], c='C5', lw=4, alpha=0.6, label='B')
+# axs[0].plot(np.array(Qs)[:,2], c='C8', lw=4, alpha=0.6, label='C')
+# axs[0].plot(np.array(Qs)[:,3], c='C9', lw=4, alpha=0.6, label='D')
+
+
+# # axs[0].plot(np.concatenate([np.full(50,1),np.full(50,0)]), c='C6', lw=4, alpha=0.6, label='A')
+# # axs[0].plot(np.full(100,0),                                c='C5', lw=4, alpha=0.6, label='B')
+# # axs[0].plot(np.full(100,0),                                c='C8', lw=4, alpha=0.6, label='C')
+# # axs[0].plot(np.concatenate([np.full(50,0),np.full(50,1)]), c='C9', lw=4, alpha=0.6, label='D')
+
+# axs[0].set_title('4-armed bandit task structure')
+# axs[0].set_ylabel('Reward') #'P(reward)')
+# axs[0].legend(title='arm', loc='upper left')
+
+# rewards_by_agent = []
+
+# for phi in [0.0, 0.25, 0.5, 0.75, 1.0]:
+#     params = {'t_mix': 3.0, 't_img': 3.0, 'alpha': 0.1, 'phi': phi}
+#     rewards_record = []
+#     phis_record = []
+#     for batch in range(1000):
+#         e = RandomWalkEnv(Qs) #BanditHardAndSparse2() #DeceptiveBanditOneHigh10() #Env([1,0,0,0])
+#         agent = Learner(e, params)
+#         (rewards, phis) = agent.run(100)
+#         rewards_record.append(rewards)
+#         phis_record.append(phis)
+#     rewards_by_agent.append(rewards_record)
+#     means = np.array(rewards_record).mean(axis=0)
+#     stds = np.array(rewards_record).std(axis=0)
+#     axs[1].plot(means, label=str(phi))
+#     axs[1].fill_between(np.arange(100), means+stds, means-stds, alpha=0.2)
+
+# params = {'t_mix': 3.0, 't_img': 3.0, 'alpha': 0.1}
 # rewards_record = []
+# phis_record = []
 # for batch in range(1000):
-#     e = Env([1,0,0,0])
+#     e = RandomWalkEnv(Qs) #BanditHardAndSparse2() #DeceptiveBanditOneHigh10() #Env([1,0,0,0])
 #     agent = Learner(e, params)
-#     rewards = agent.run(100)
+#     (rewards, phis) = agent.run(100)
 #     rewards_record.append(rewards)
-# plt.plot(np.array(rewards_record).mean(axis=0))
+#     phis_record.append(phis)
+# rewards_by_agent.append(rewards_record)
+# means = np.array(rewards_record).mean(axis=0)
+# stds = np.array(rewards_record).std(axis=0)
+# axs[1].plot(means, label='auto', c='k', linestyle='dashed')
+# axs[1].fill_between(np.arange(100), means+stds, means-stds, color='k', alpha=0.1)
+
+# #fig.suptitle('Avg. reward over 1,000 runs +- std')
+# axs[1].set_title('Avg. reward over 1,000 runs +- std')
+# axs[1].set_ylabel('reward')
+# axs[1].legend(title='phi setting', loc='upper left')
+
+# means = np.array(phis_record).mean(axis=0)
+# stds = np.array(phis_record).std(axis=0)
+# axs[2].plot(means, label='phi', c='k')
+# axs[2].fill_between(np.arange(100), means+stds, means-stds, color='k', alpha=0.1)
+# axs[2].set_title('Avg. adaptive phi setting over 1,000 runs +- std')
+# axs[2].set_ylim(0,1)
+# axs[2].set_ylabel('phi')
+# axs[2].set_xlabel('trial')
+# axs[2].legend(loc='upper left')
+ 
+# plt.show()
 
 
-# generate random walk reward schedules
-A_init = np.random.rand()
-Qs = [np.array([A_init, 0.2, 0.3, 1 - A_init])]
-#start = np.random.rand(4)
-for i in range(99):
-    drift = np.random.normal(0, 0.1) #, 4)
-    Qs.append(Qs[-1] + [drift, 0, 0, -1 * drift])
-    if Qs[-1][0] > 1:
-        Qs[-1][0] = 1
-        Qs[-1][3] = 0
-    if Qs[-1][0] < 0:
-        Qs[-1][0] = 0
-        Qs[-1][3] = 1
+# # fig, axs = plt.subplots(3)
+# # for phi in [0.0, 0.25, 0.5, 0.75, 1.0]:
+
+# #     #fig.suptitle('Vertically stacked subplots')
+# #     axs[0].plot(x, y)
+# #     axs[1].plot(x, -y)
+
+# fig, ax = plt.subplots(1, figsize=(8,4))
+
+# batch_means = []
+# for agent_data in rewards_by_agent:
+#     avg_rewards = []
+#     for batch_rewards in agent_data:
+#         avg_rewards.append(np.array(batch_rewards).mean())
+#     batch_means.append(np.array(avg_rewards).mean())
+
+# ax.bar(np.arange(6), batch_means)
+# ax.set_xticklabels(labels=['0.0', '0.0', '0.25', '0.5', '0.75', '1.0', 'auto'])
+# ax.set_xlabel('Phi setting')
+# ax.set_ylabel('Average experiment-averaged reward')
+
+# plt.show()
+
+
+
+
+
+
+
+
+
+# # # generate sparse random reward schedules
+# # arm_probs = [0.1, 0.2, 0.1, 0.2]
+# # Qs = []
+# # for i in range(100):
+# #     Qs.append((np.random.rand(4) < arm_probs).astype(int))
+
+
+# fig, axs = plt.subplots(3, sharex=True, figsize=(8,10))
+
+# # axs[0].plot(np.array(Qs)[:,0], c='C6', lw=4, alpha=0.6, label='A')
+# # axs[0].plot(np.array(Qs)[:,1], c='C5', lw=4, alpha=0.6, label='B')
+# # axs[0].plot(np.array(Qs)[:,2], c='C8', lw=4, alpha=0.6, label='C')
+# # axs[0].plot(np.array(Qs)[:,3], c='C9', lw=4, alpha=0.6, label='D')
+
+
+# axs[0].plot(np.full(100,0.1), c='C6', lw=4, alpha=0.6, label='A')
+# axs[0].plot(np.full(100,0.2), c='C5', lw=4, alpha=0.6, label='B')
+# axs[0].plot(np.full(100,0.1), c='C8', lw=4, alpha=0.6, label='C')
+# axs[0].plot(np.full(100,0.1), c='C9', lw=4, alpha=0.6, label='D')
+
+# axs[0].set_title('4-armed bandit task structure')
+# axs[0].set_ylabel('Reward') #'P(reward)')
+# axs[0].legend(title='arm', loc='upper left')
+# axs[0].set_ylim(0,1)
+
+# rewards_by_agent = []
+
+# for phi in [0.0, 0.25, 0.5, 0.75, 1.0]:
+#     params = {'t_mix': 3.0, 't_img': 3.0, 'alpha': 0.1, 'phi': phi}
+#     rewards_record = []
+#     phis_record = []
+#     for batch in range(1000):
+#         arm_probs = [0.1, 0.2, 0.1, 0.2]
+#         Qs = []
+#         for i in range(100):
+#             Qs.append((np.random.rand(4) < arm_probs).astype(int))
+#         e = RandomWalkEnv(Qs) #BanditHardAndSparse2() #DeceptiveBanditOneHigh10() #Env([1,0,0,0])
+#         agent = Learner(e, params)
+#         (rewards, phis) = agent.run(100)
+#         rewards_record.append(rewards)
+#         phis_record.append(phis)
+#     rewards_by_agent.append(rewards_record)
+#     means = np.array(rewards_record).mean(axis=0)
+#     stds = np.array(rewards_record).std(axis=0)
+#     axs[1].plot(means, label=str(phi))
+#     axs[1].fill_between(np.arange(100), means+stds, means-stds, alpha=0.2)
+
+# params = {'t_mix': 3.0, 't_img': 3.0, 'alpha': 0.1}
+# rewards_record = []
+# phis_record = []
+# for batch in range(1000):
+#     arm_probs = [0.1, 0.2, 0.1, 0.2]
+#     Qs = []
+#     for i in range(100):
+#         Qs.append((np.random.rand(4) < arm_probs).astype(int))
+#     e = RandomWalkEnv(Qs) #BanditHardAndSparse2() #DeceptiveBanditOneHigh10() #Env([1,0,0,0])
+#     agent = Learner(e, params)
+#     (rewards, phis) = agent.run(100)
+#     rewards_record.append(rewards)
+#     phis_record.append(phis)
+# rewards_by_agent.append(rewards_record)
+# means = np.array(rewards_record).mean(axis=0)
+# stds = np.array(rewards_record).std(axis=0)
+# axs[1].plot(means, label='auto', c='k', linestyle='dashed')
+# axs[1].fill_between(np.arange(100), means+stds, means-stds, color='k', alpha=0.1)
+
+# #fig.suptitle('Avg. reward over 1,000 runs +- std')
+# axs[1].set_title('Avg. reward over 1,000 runs +- std')
+# axs[1].set_ylabel('Experienced reward')
+# axs[1].legend(title='phi setting', loc='upper left')
+
+# means = np.array(phis_record).mean(axis=0)
+# stds = np.array(phis_record).std(axis=0)
+# axs[2].plot(means, label='phi', c='k')
+# axs[2].fill_between(np.arange(100), means+stds, means-stds, color='k', alpha=0.1)
+# axs[2].set_title('Avg. adaptive phi setting over 1,000 runs +- std')
+# axs[2].set_ylim(0,1)
+# axs[2].set_ylabel('phi')
+# axs[2].set_xlabel('trial')
+# axs[2].legend(loc='upper left')
+ 
+# plt.show()
+
+
+
+# fig, ax = plt.subplots(1, figsize=(8,4))
+
+# batch_means = []
+# for agent_data in rewards_by_agent:
+#     avg_rewards = []
+#     for batch_rewards in agent_data:
+#         avg_rewards.append(np.array(batch_rewards).mean())
+#     batch_means.append(np.array(avg_rewards).mean())
+
+# ax.bar(np.arange(6), batch_means)
+# ax.set_xticklabels(labels=['0.0', '0.0', '0.25', '0.5', '0.75', '1.0', 'auto'])
+# ax.set_xlabel('Phi setting')
+# ax.set_ylabel('Average experiment-averaged reward')
+
+# plt.show()
+
+
+
+
+
+
+
+
+
+
+
+# generate deceptive reward schedules
+
+Qs = []
+for i in range(20):
+    Qs.append(np.array([.2,.9,.2,.2]))
+for i in range(10):
+    Qs.append(np.array([.2,.1,.2,.2]))
+for i in range(70):
+    Qs.append(np.array([.2,.9,.2,.2]))
 
 
 fig, axs = plt.subplots(3, sharex=True, figsize=(8,10))
@@ -188,8 +409,10 @@ axs[0].plot(np.array(Qs)[:,3], c='C9', lw=4, alpha=0.6, label='D')
 # axs[0].plot(np.concatenate([np.full(50,0),np.full(50,1)]), c='C9', lw=4, alpha=0.6, label='D')
 
 axs[0].set_title('4-armed bandit task structure')
-axs[0].set_ylabel('P(reward)')
+axs[0].set_ylabel('Reward') #'P(reward)')
 axs[0].legend(title='arm', loc='upper left')
+
+rewards_by_agent = []
 
 for phi in [0.0, 0.25, 0.5, 0.75, 1.0]:
     params = {'t_mix': 3.0, 't_img': 3.0, 'alpha': 0.1, 'phi': phi}
@@ -201,6 +424,7 @@ for phi in [0.0, 0.25, 0.5, 0.75, 1.0]:
         (rewards, phis) = agent.run(100)
         rewards_record.append(rewards)
         phis_record.append(phis)
+    rewards_by_agent.append(rewards_record)
     means = np.array(rewards_record).mean(axis=0)
     stds = np.array(rewards_record).std(axis=0)
     axs[1].plot(means, label=str(phi))
@@ -215,6 +439,7 @@ for batch in range(1000):
     (rewards, phis) = agent.run(100)
     rewards_record.append(rewards)
     phis_record.append(phis)
+rewards_by_agent.append(rewards_record)
 means = np.array(rewards_record).mean(axis=0)
 stds = np.array(rewards_record).std(axis=0)
 axs[1].plot(means, label='auto', c='k', linestyle='dashed')
@@ -244,4 +469,24 @@ plt.show()
 #     #fig.suptitle('Vertically stacked subplots')
 #     axs[0].plot(x, y)
 #     axs[1].plot(x, -y)
+
+fig, ax = plt.subplots(1, figsize=(8,4))
+
+batch_means = []
+for agent_data in rewards_by_agent:
+    avg_rewards = []
+    for batch_rewards in agent_data:
+        avg_rewards.append(np.array(batch_rewards).mean())
+    batch_means.append(np.array(avg_rewards).mean())
+
+ax.bar(np.arange(6), batch_means)
+ax.set_xticklabels(labels=['0.0', '0.0', '0.25', '0.5', '0.75', '1.0', 'auto'])
+ax.set_xlabel('Phi setting')
+ax.set_ylabel('Average experiment-averaged reward')
+
+plt.show()
+
+
+
+
 
