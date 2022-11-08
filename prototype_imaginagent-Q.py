@@ -178,14 +178,23 @@ class Learner:
         return (reward, phi)
 
 
-def run_and_plot_phis_exp(env, arm_vals, task_ylabel):
+def run_and_plot_phis_exp(env, arm_vals, task_ylabel, portion='all'):
+
+    n_trials = 100    
+    n_batches = 1000
+    if portion == 'all':
+        start = 0
+        stop = n_trials
+    else:
+        start = portion[0]
+        stop  = portion[1]
     
     fig, axs = plt.subplots(3, sharex=True, figsize=(8,10))
     
-    axs[0].plot(np.array(arm_vals)[:,0], c='C6', lw=4, alpha=0.6, label='A')
-    axs[0].plot(np.array(arm_vals)[:,1], c='C5', lw=4, alpha=0.6, label='B')
-    axs[0].plot(np.array(arm_vals)[:,2], c='C8', lw=4, alpha=0.6, label='C')
-    axs[0].plot(np.array(arm_vals)[:,3], c='C9', lw=4, alpha=0.6, label='D')
+    axs[0].plot(np.arange(start, stop), np.array(arm_vals)[start:stop,0], c='C6', lw=4, alpha=0.6, label='A')
+    axs[0].plot(np.arange(start, stop), np.array(arm_vals)[start:stop,1], c='C5', lw=4, alpha=0.6, label='B')
+    axs[0].plot(np.arange(start, stop), np.array(arm_vals)[start:stop,2], c='C8', lw=4, alpha=0.6, label='C')
+    axs[0].plot(np.arange(start, stop), np.array(arm_vals)[start:stop,3], c='C9', lw=4, alpha=0.6, label='D')
     axs[0].set_title('4-armed bandit task structure')
     axs[0].set_ylabel(task_ylabel) #'Reward') #'P(reward)')
     axs[0].legend(title='arm', loc='upper right')
@@ -193,44 +202,47 @@ def run_and_plot_phis_exp(env, arm_vals, task_ylabel):
     rewards_by_agent = []
     
     for phi in [0.0, 0.25, 0.5, 0.75, 1.0]:
-        params = {'t_mix': 3.0, 't_img': 3.0, 'alpha': 0.1, 'phi': phi}
+        params = {'t_mix': 3, 't_img': 3, 'alpha': 0.1, 'phi': phi}
         rewards_record = []
         phis_record = []
-        for batch in range(1000):
+        for batch in range(n_batches):
             env.reset()
             agent = Learner(e, params)
             (rewards, phis) = agent.run(100)
             rewards_record.append(rewards)
             phis_record.append(phis)
         rewards_by_agent.append(rewards_record)
-        means = np.array(rewards_record).mean(axis=0)
-        stds = np.array(rewards_record).std(axis=0)
-        axs[1].plot(means, label=str(phi))
-        axs[1].fill_between(np.arange(100), means+stds, means-stds, alpha=0.2)
+        means = np.array(rewards_record).mean(axis=0)[start:stop]
+        stds = np.array(rewards_record).std(axis=0)[start:stop]
+        cis = 1.96 * stds / np.sqrt(n_batches)
+        axs[1].plot(np.arange(start, stop), means, label=str(phi))
+        axs[1].fill_between(np.arange(start, stop), means+cis, means-cis, alpha=0.2)
     
-    params = {'t_mix': 3.0, 't_img': 3.0, 'alpha': 0.1}
+    params = {'t_mix': 3, 't_img': 3, 'alpha': 0.1}
     rewards_record = []
     phis_record = []
-    for batch in range(1000):
+    for batch in range(n_batches):
         env.reset()
         agent = Learner(env, params)
         (rewards, phis) = agent.run(100)
         rewards_record.append(rewards)
         phis_record.append(phis)
     rewards_by_agent.append(rewards_record)
-    means = np.array(rewards_record).mean(axis=0)
-    stds = np.array(rewards_record).std(axis=0)
-    axs[1].plot(means, label='auto', c='k', linestyle='dashed')
-    axs[1].fill_between(np.arange(100), means+stds, means-stds, color='k', alpha=0.1)
-    axs[1].set_title('Avg. reward over 1,000 runs +- std')
+    means = np.array(rewards_record).mean(axis=0)[start:stop]
+    stds = np.array(rewards_record).std(axis=0)[start:stop]
+    cis = 1.96 * stds / np.sqrt(n_batches)
+    axs[1].plot(np.arange(start, stop), means, label='auto', c='k', linestyle='dashed')
+    axs[1].fill_between(np.arange(start, stop), means+cis, means-cis, color='k', alpha=0.1)
+    axs[1].set_title('Avg. reward over 1,000 runs (95% CI)')
     axs[1].set_ylabel('Reward')
     axs[1].legend(title='phi setting', loc='upper right')
     
-    means = np.array(phis_record).mean(axis=0)
-    stds = np.array(phis_record).std(axis=0)
-    axs[2].plot(means, label='phi', c='k')
-    axs[2].fill_between(np.arange(100), means+stds, means-stds, color='k', alpha=0.1)
-    axs[2].set_title('Avg. adaptive phi setting over 1,000 runs +- std')
+    means = np.array(phis_record).mean(axis=0)[start:stop]
+    stds = np.array(phis_record).std(axis=0)[start:stop]
+    cis = 1.96 * stds / np.sqrt(n_batches)
+    axs[2].plot(np.arange(start, stop), means, label='phi', c='k')
+    axs[2].fill_between(np.arange(start, stop), means+cis, means-cis, color='k', alpha=0.1)
+    axs[2].set_title('Avg. adaptive phi setting over 1,000 runs (95% CI)')
     axs[2].set_ylim(0,1)
     axs[2].set_ylabel('phi')
     axs[2].set_xlabel('Trial')
@@ -240,25 +252,35 @@ def run_and_plot_phis_exp(env, arm_vals, task_ylabel):
     fig, ax = plt.subplots(1, figsize=(8,4))
     
     batch_means = []
+    batch_stdvs = []
     for agent_data in rewards_by_agent:
         avg_rewards = []
         for batch_rewards in agent_data:
-            avg_rewards.append(np.array(batch_rewards).mean())
+            avg_rewards.append(np.array(batch_rewards)[start:stop].mean())
         batch_means.append(np.array(avg_rewards).mean())
+        batch_stdvs.append(np.array(avg_rewards).std())
     
-    ax.bar(np.arange(6), batch_means)
+    # how long to make error bars (one side of the bar)
+    ci_err_95 = 1.96 * np.array(batch_stdvs) / np.sqrt(n_batches)
+    ax.bar(np.arange(6), batch_means, yerr=ci_err_95, color='lightgreen')
     ax.set_xticklabels(labels=['0.0', '0.0', '0.25', '0.5', '0.75', '1.0', 'auto'])
     ax.set_xlabel('Phi setting')
-    ax.set_ylabel('Average experiment-averaged reward')
+    
+    if portion == 'all':
+        ax.set_ylabel('Average reward')
+        ax.set_title('Average reward across experiment by agent (95% CI)')
+    else:
+        ax.set_ylabel('Average reward')
+        ax.set_title(f'Average reward by agent, across trials {start} up to {stop} (95% CI)')
     
     plt.show()
 
 
 ##### EXPERIMENTS #####
 
-# switch experiment
-e = Env([1,0,0,0])
-run_and_plot_phis_exp(env=e, arm_vals=[[1,0,0,0]]*50+[[0,0,0,1]]*50, task_ylabel='Reward')
+# # switch experiment
+# e = Env([1,0,0,0])
+# run_and_plot_phis_exp(env=e, arm_vals=[[1,0,0,0]]*50+[[0,0,0,1]]*50, task_ylabel='Reward')
 
 
 # # generate random walk reward schedules for drift experiment
@@ -287,12 +309,20 @@ run_and_plot_phis_exp(env=e, arm_vals=[[1,0,0,0]]*50+[[0,0,0,1]]*50, task_ylabel
 
 # # generate deceptive reward schedules and run experiment
 # Qs = []
-# for i in range(20):
-#     Qs.append(np.array([.2,.9,.2,.2]))
 # for i in range(10):
+#     Qs.append(np.array([.2,.9,.2,.2]))
+# for i in range(40):
 #     Qs.append(np.array([.2,.1,.2,.2]))
-# for i in range(70):
+# for i in range(50):
 #     Qs.append(np.array([.2,.9,.2,.2]))
 
 # e = RandomWalkEnv(Qs)
 # run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward')
+
+
+# switch experiment (right after switch)
+e = Env([1,0,0,0])
+run_and_plot_phis_exp(env=e,
+                      arm_vals=[[1,0,0,0]]*50+[[0,0,0,1]]*50,
+                      task_ylabel='Reward',
+                      portion=(50,55))
