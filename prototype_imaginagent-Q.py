@@ -110,14 +110,16 @@ class Learner:
     def run(self, n_trials):
         rewards = []
         phis = []
+        loss_diffs = []
         for trial in range(n_trials):
-            (reward, phi) = self.perform_trial()
+            (reward, phi, loss_exp, loss_img) = self.perform_trial()
             rewards.append(reward)
             phis.append(phi)
+            loss_diffs.append(loss_img - loss_exp)
         # print(self.Q_exp)
         # print(self.Q_img)
         # print(self.Q_mix)
-        return (rewards, phis)
+        return (rewards, phis, loss_diffs)
     
     def perform_trial(self):
         # parameters
@@ -148,15 +150,20 @@ class Learner:
         # calculate loss wrt Q_img
         loss_img = abs(reward - Q_img[action])
         
+        
         # calculate phi
-        if 'phi' in self.params:
+        if self.env_steps_taken == 1:
+            phi = 0 # phi is 0 for the 1st time step
+        elif 'phi' in self.params:
             phi = self.params['phi']
         elif loss_exp + loss_img == 0: # prevent divide by zero error
             phi = 0.5
         else:
             phi = loss_exp / (loss_exp + loss_img) # relative loss proportion
-        
-        if self.env_steps_taken == 1: phi = 0 # phi is 0 for the 1st time step
+            # if loss_img - loss_exp < 0.05: #0: #0.1:
+            #     phi = 1.0
+            # else:
+            #     phi = 0.0
         
         # update Q_exp using exp sample
         self.Q_exp[action] += alpha * (reward - Q_exp[action])
@@ -175,7 +182,7 @@ class Learner:
         self.Q_mix = (1 - phi) * Q_exp + (phi) * Q_img
         
         # return reward for this trial
-        return (reward, phi)
+        return (reward, phi, loss_exp, loss_img)
 
 
 def run_and_plot_phis_exp(env, arm_vals, task_ylabel, portion='all'):
@@ -208,7 +215,7 @@ def run_and_plot_phis_exp(env, arm_vals, task_ylabel, portion='all'):
         for batch in range(n_batches):
             env.reset()
             agent = Learner(e, params)
-            (rewards, phis) = agent.run(100)
+            (rewards, phis, loss_diffs) = agent.run(100)
             rewards_record.append(rewards)
             phis_record.append(phis)
         rewards_by_agent.append(rewards_record)
@@ -221,12 +228,14 @@ def run_and_plot_phis_exp(env, arm_vals, task_ylabel, portion='all'):
     params = {'t_mix': 3, 't_img': 3, 'alpha': 0.1}
     rewards_record = []
     phis_record = []
+    diff_record = []
     for batch in range(n_batches):
         env.reset()
         agent = Learner(env, params)
-        (rewards, phis) = agent.run(100)
+        (rewards, phis, loss_diffs) = agent.run(100)
         rewards_record.append(rewards)
         phis_record.append(phis)
+        diff_record.append(loss_diffs)
     rewards_by_agent.append(rewards_record)
     means = np.array(rewards_record).mean(axis=0)[start:stop]
     stds = np.array(rewards_record).std(axis=0)[start:stop]
@@ -243,10 +252,25 @@ def run_and_plot_phis_exp(env, arm_vals, task_ylabel, portion='all'):
     axs[2].plot(np.arange(start, stop), means, label='phi', c='k')
     axs[2].fill_between(np.arange(start, stop), means+cis, means-cis, color='k', alpha=0.1)
     axs[2].set_title('Avg. adaptive phi setting over 1,000 runs (95% CI)')
-    axs[2].set_ylim(0,1)
+    axs[2].set_ylim(-0.05,1.05)
     axs[2].set_ylabel('phi')
     axs[2].set_xlabel('Trial')
      
+    plt.show()
+    
+    fig, ax = plt.subplots(1, figsize=(8,4))
+    
+    means = np.array(diff_record).mean(axis=0)[start:stop]
+    stds = np.array(diff_record).std(axis=0)[start:stop]
+    cis = 1.96 * stds / np.sqrt(n_batches)
+    ax.plot(np.arange(start, stop), means, label='phi', c='k')
+    ax.fill_between(np.arange(start, stop), means+cis, means-cis, color='k', alpha=0.1)
+    ax.set_title('Avg. loss difference (L_I - L_E) over 1,000 runs (95% CI)')
+    #ax.set_ylim(0,1)
+    ax.set_ylabel('loss difference (L_I - L_E)')
+    ax.set_xlabel('Trial')
+    ax.axhline(y=0)
+    
     plt.show()
     
     fig, ax = plt.subplots(1, figsize=(8,4))
@@ -278,9 +302,9 @@ def run_and_plot_phis_exp(env, arm_vals, task_ylabel, portion='all'):
 
 ##### EXPERIMENTS #####
 
-# # switch experiment
-# e = Env([1,0,0,0])
-# run_and_plot_phis_exp(env=e, arm_vals=[[1,0,0,0]]*50+[[0,0,0,1]]*50, task_ylabel='Reward')
+# switch experiment
+e = Env([1,0,0,0])
+run_and_plot_phis_exp(env=e, arm_vals=[[1,0,0,0]]*50+[[0,0,0,1]]*50, task_ylabel='Reward')
 
 
 # # generate random walk reward schedules for drift experiment
@@ -320,9 +344,9 @@ def run_and_plot_phis_exp(env, arm_vals, task_ylabel, portion='all'):
 # run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward')
 
 
-# switch experiment (right after switch)
-e = Env([1,0,0,0])
-run_and_plot_phis_exp(env=e,
-                      arm_vals=[[1,0,0,0]]*50+[[0,0,0,1]]*50,
-                      task_ylabel='Reward',
-                      portion=(50,55))
+# # switch experiment (right after switch)
+# e = Env([1,0,0,0])
+# run_and_plot_phis_exp(env=e,
+#                       arm_vals=[[1,0,0,0]]*50+[[0,0,0,1]]*50,
+#                       task_ylabel='Reward',
+#                       portion=(50,55))
