@@ -344,43 +344,43 @@ def run_and_plot_phis_exp(env, arm_vals, task_ylabel, portion='all'):
 # run_and_plot_phis_exp(env=e, arm_vals=[[1,0,0,0]]*50+[[0,0,0,1]]*50, task_ylabel='Reward')
 
 
-# # generate random walk reward schedules for drift experiment
-# A_init = np.random.rand()
-# Qs = [np.array([A_init, 0.2, 0.3, 1 - A_init])]
-# #start = np.random.rand(4)
-# for i in range(99):
-#     drift = np.random.normal(0, 0.25) #,0.1 #, 4)
-#     Qs.append(Qs[-1] + [drift, 0, 0, -1 * drift])
-#     if Qs[-1][0] > 1:
-#         Qs[-1][0] = 1
-#         Qs[-1][3] = 0
-#     if Qs[-1][0] < 0:
-#         Qs[-1][0] = 0
-#         Qs[-1][3] = 1
+# generate random walk reward schedules for drift experiment
+A_init = np.random.rand()
+Qs = [np.array([A_init, 0.2, 0.3, 1 - A_init])]
+#start = np.random.rand(4)
+for i in range(99):
+    drift = np.random.normal(0, 0.25) #,0.1 #, 4)
+    Qs.append(Qs[-1] + [drift, 0, 0, -1 * drift])
+    if Qs[-1][0] > 1:
+        Qs[-1][0] = 1
+        Qs[-1][3] = 0
+    if Qs[-1][0] < 0:
+        Qs[-1][0] = 0
+        Qs[-1][3] = 1
 
-# e = RandomWalkEnv(Qs)
-# run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward')
-
-
-# # run very sparse random reward schedule experiment
-# arm_reward_probs = [0.01, 0.02, 0.01, 0.02]
-# e = BanditEnv(arm_probs=arm_reward_probs)
-# run_and_plot_phis_exp(env=e, arm_vals=[arm_reward_probs]*100, task_ylabel='P(Reward=1)')
+e = RandomWalkEnv(Qs)
+run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward')
 
 
-# # generate deceptive reward schedules and run experiment
-# Qs = []
-# for i in range(20):
-#     Qs.append(np.array([.2,.9,.2,.2]))
-# for i in range(10):
-#     Qs.append(np.array([.2,.1,.2,.2]))
-# for i in range(70):
-#     Qs.append(np.array([.2,.9,.2,.2]))
+# run very sparse random reward schedule experiment
+arm_reward_probs = [0.01, 0.02, 0.01, 0.02]
+e = BanditEnv(arm_probs=arm_reward_probs)
+run_and_plot_phis_exp(env=e, arm_vals=[arm_reward_probs]*100, task_ylabel='P(Reward=1)')
 
-# e = RandomWalkEnv(Qs)
-# #run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward')
-# run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward', portion=(10,15))
-# run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward', portion=(20,25))
+
+# generate deceptive reward schedules and run experiment
+Qs = []
+for i in range(20):
+    Qs.append(np.array([.2,.9,.2,.2]))
+for i in range(10):
+    Qs.append(np.array([.2,.1,.2,.2]))
+for i in range(70):
+    Qs.append(np.array([.2,.9,.2,.2]))
+
+e = RandomWalkEnv(Qs)
+run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward')
+run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward', portion=(15,35))
+#run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward', portion=(20,25))
 
 
 # # switch experiment (right after switch)
@@ -428,4 +428,7 @@ fig, ax = plt.subplots(1, figsize=(8,4))
 x = np.arange(-1,1,.001)
 y = 1 / (1 + np.exp(-10 * (x)))
 ax.plot(x, y)
+ax.set_title('Adaptive phi function')
+ax.set_xlabel('loss_exp - loss_img')
+ax.set_ylabel('1 / (1 + exp(-10 * (loss_exp - loss_img)))')
 plt.show()
