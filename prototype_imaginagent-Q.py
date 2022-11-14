@@ -166,7 +166,7 @@ class Learner:
             #phi = loss_exp / (loss_exp + loss_img) # relative loss proportion
             
             # TODO - implement logistic phi setting
-            phi = 1 / (1 + np.exp(-10 * (loss_exp - loss_img)))
+            phi = 1 / (1 + np.exp(-10 * (loss_exp - loss_img - self.params['c'])))
             
             # # all-or-nothing phi
             # if loss_img - loss_exp < 0: #0.05: #0: #0.1:
@@ -223,7 +223,7 @@ def run_and_plot_phis_exp(env, arm_vals, task_ylabel, portion='all'):
         phis_record = []
         for batch in range(n_batches):
             env.reset()
-            agent = Learner(e, params)
+            agent = Learner(env, params)
             (rewards, phis, exp_losses, img_losses) = agent.run(n_trials)
             rewards_record.append(rewards)
             phis_record.append(phis)
@@ -344,43 +344,43 @@ def run_and_plot_phis_exp(env, arm_vals, task_ylabel, portion='all'):
 # run_and_plot_phis_exp(env=e, arm_vals=[[1,0,0,0]]*50+[[0,0,0,1]]*50, task_ylabel='Reward')
 
 
-# generate random walk reward schedules for drift experiment
-A_init = np.random.rand()
-Qs = [np.array([A_init, 0.2, 0.3, 1 - A_init])]
-#start = np.random.rand(4)
-for i in range(99):
-    drift = np.random.normal(0, 0.25) #,0.1 #, 4)
-    Qs.append(Qs[-1] + [drift, 0, 0, -1 * drift])
-    if Qs[-1][0] > 1:
-        Qs[-1][0] = 1
-        Qs[-1][3] = 0
-    if Qs[-1][0] < 0:
-        Qs[-1][0] = 0
-        Qs[-1][3] = 1
+# # generate random walk reward schedules for drift experiment
+# A_init = np.random.rand()
+# Qs = [np.array([A_init, 0.2, 0.3, 1 - A_init])]
+# #start = np.random.rand(4)
+# for i in range(99):
+#     drift = np.random.normal(0, 0.25) #,0.1 #, 4)
+#     Qs.append(Qs[-1] + [drift, 0, 0, -1 * drift])
+#     if Qs[-1][0] > 1:
+#         Qs[-1][0] = 1
+#         Qs[-1][3] = 0
+#     if Qs[-1][0] < 0:
+#         Qs[-1][0] = 0
+#         Qs[-1][3] = 1
 
-e = RandomWalkEnv(Qs)
-run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward')
-
-
-# run very sparse random reward schedule experiment
-arm_reward_probs = [0.01, 0.02, 0.01, 0.02]
-e = BanditEnv(arm_probs=arm_reward_probs)
-run_and_plot_phis_exp(env=e, arm_vals=[arm_reward_probs]*100, task_ylabel='P(Reward=1)')
+# e = RandomWalkEnv(Qs)
+# run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward')
 
 
-# generate deceptive reward schedules and run experiment
-Qs = []
-for i in range(20):
-    Qs.append(np.array([.2,.9,.2,.2]))
-for i in range(10):
-    Qs.append(np.array([.2,.1,.2,.2]))
-for i in range(70):
-    Qs.append(np.array([.2,.9,.2,.2]))
+# # run very sparse random reward schedule experiment
+# arm_reward_probs = [0.01, 0.02, 0.01, 0.02]
+# e = BanditEnv(arm_probs=arm_reward_probs)
+# run_and_plot_phis_exp(env=e, arm_vals=[arm_reward_probs]*100, task_ylabel='P(Reward=1)')
 
-e = RandomWalkEnv(Qs)
-run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward')
-run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward', portion=(15,35))
-#run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward', portion=(20,25))
+
+# # generate deceptive reward schedules and run experiment
+# Qs = []
+# for i in range(20):
+#     Qs.append(np.array([.2,.9,.2,.2]))
+# for i in range(10):
+#     Qs.append(np.array([.2,.1,.2,.2]))
+# for i in range(70):
+#     Qs.append(np.array([.2,.9,.2,.2]))
+
+# e = RandomWalkEnv(Qs)
+# run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward')
+# run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward', portion=(15,35))
+# #run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward', portion=(20,25))
 
 
 # # switch experiment (right after switch)
@@ -424,11 +424,86 @@ run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward', portion=(15,35))
 # e = RandomWalkEnv(Qs)
 # run_and_plot_phis_exp(env=e, arm_vals=Qs, task_ylabel='Reward')
 
+
+
+
+
+# Phi shift experiment
+#Look at the 10 time steps after the switch
+#Look over x shift range of -0.5 to 0.5 in increments of 0.1 or 0.25.
+#Will be interesting to see the result.
+
+c_settings = np.linspace(-1,1,9)
+
 fig, ax = plt.subplots(1, figsize=(8,4))
-x = np.arange(-1,1,.001)
-y = 1 / (1 + np.exp(-10 * (x)))
-ax.plot(x, y)
+x = np.arange(-1.5,1.5,.001)
+for c in c_settings:
+    y = 1 / (1 + np.exp(-10 * (x - c)))
+    ax.plot(x, y, label=f'{c}') #'#:.1f}')
 ax.set_title('Adaptive phi function')
 ax.set_xlabel('loss_exp - loss_img')
-ax.set_ylabel('1 / (1 + exp(-10 * (loss_exp - loss_img)))')
+ax.set_ylabel('1 / (1 + exp(-10 * (loss_exp - loss_img - c)))')
+ax.legend(title='c setting')
+plt.show()
+
+n_trials = 100    
+n_batches = 1000
+
+start = 50
+stop  = 60
+
+rewards_by_agent = []
+
+env = Env([1,0,0,0])
+
+
+
+for c in c_settings:
+    params = {'t_mix': 3, 't_img': 3, 'alpha': 0.1, 'c':c}
+    rewards_record = []
+    phis_record = []
+    for batch in range(n_batches):
+        env.reset()
+        agent = Learner(env, params)
+        (rewards, phis, exp_losses, img_losses) = agent.run(n_trials)
+        rewards_record.append(rewards)
+        phis_record.append(phis)
+    rewards_by_agent.append(rewards_record)
+    # means = np.array(rewards_record).mean(axis=0)[start:stop]
+    # stds = np.array(rewards_record).std(axis=0)[start:stop]
+    # cis = 1.96 * stds / np.sqrt(n_batches)
+
+fig, ax = plt.subplots(1, figsize=(8,4))
+
+batch_means_piece = []
+batch_stdvs_piece = []
+batch_means_whole = []
+batch_stdvs_whole = []
+for agent_data in rewards_by_agent:
+    avg_rewards_piece = []
+    avg_rewards_whole = []
+    for batch_rewards in agent_data:
+        avg_rewards_piece.append(np.array(batch_rewards)[start:stop].mean())
+        avg_rewards_whole.append(np.array(batch_rewards).mean())
+    batch_means_piece.append(np.array(avg_rewards_piece).mean())
+    batch_stdvs_piece.append(np.array(avg_rewards_piece).std())
+    batch_means_whole.append(np.array(avg_rewards_whole).mean())
+    batch_stdvs_whole.append(np.array(avg_rewards_whole).std())
+
+# how long to make error bars (one side of the bar)
+ci_err_95 = 1.96 * np.array(batch_stdvs_piece) / np.sqrt(n_batches)
+ax.plot(c_settings, batch_means_piece, label=f'{start}-{stop}')#, yerr=ci_err_95)
+ax.fill_between(c_settings, batch_means_piece-ci_err_95, batch_means_piece+ci_err_95, alpha=0.2)
+
+ci_err_95 = 1.96 * np.array(batch_stdvs_whole) / np.sqrt(n_batches)
+ax.plot(c_settings, batch_means_whole, label='all')#, yerr=ci_err_95)
+ax.fill_between(c_settings, batch_means_whole-ci_err_95, batch_means_whole+ci_err_95, alpha=0.2)
+
+ax.legend(title='trials')
+
+ax.set_xlabel('c setting')
+
+ax.set_ylabel('Average reward')
+ax.set_title('Average reward by agent (95% CI)')
+
 plt.show()
